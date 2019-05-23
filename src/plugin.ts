@@ -1,6 +1,5 @@
 const through2 = require('through2')
 import Vinyl = require('vinyl')
-const split = require('split2')
 import PluginError = require('plugin-error');
 const pkginfo = require('pkginfo')(module); // project package.json info into module.exports
 const PLUGIN_NAME = module.exports.name;
@@ -8,138 +7,130 @@ import * as loglevel from 'loglevel'
 const log = loglevel.getLogger(PLUGIN_NAME) // get a logger instance based on the project name
 log.setLevel((process.env.DEBUG_LEVEL || 'warn') as log.LogLevelDesc)
 
-export type TransformCallback = (lineObj: object) => object | null
-export type FinishCallback = () => void
-export type StartCallback = () => void
-export type allCallbacks = {
-  transformCallback?: TransformCallback,
-  finishCallback?: FinishCallback,
-  startCallback?: StartCallback
+const parse = require('csv-parse')
+
+/** wrap incoming recordObject in a Singer RECORD Message object*/
+function createRecord(recordObject:Object, streamName: string) : any {
+  return {type:"RECORD", stream:streamName, record:recordObject}
 }
 
-/* This is a model gulp-etl plugin. It is compliant with best practices for Gulp plugins (see
+/* This is a gulp-etl plugin. It is compliant with best practices for Gulp plugins (see
 https://github.com/gulpjs/gulp/blob/master/docs/writing-a-plugin/guidelines.md#what-does-a-good-plugin-look-like ),
-but with an additional feature: it accepts a configObj as its first parameter */
-export function handlelines(configObj: any, newHandlers?: allCallbacks) {
-  let propsToAdd = configObj.propsToAdd
+and like all gulp-etl plugins it accepts a configObj as its first parameter */
+export function tapCsv(configObj: any) {
+  if (!configObj) configObj = {}
+  if (!configObj.columns) configObj.columns = true // we don't allow false for columns; it results in arrays instead of objects for each record
 
-  // handleLine could be the only needed piece to be replaced for most gulp-etl plugins
-  const defaultHandleLine = (lineObj: object): object | null => {
-    for (let propName in propsToAdd) {
-      (lineObj as any)[propName] = propsToAdd[propName]
-    }
-    return lineObj
-  }
-  const defaultFinishHandler = (): void => {
-    log.info("The handler has officially ended!");
-  }
-  const defaultStartHandler = () => {
-    log.info("The handler has officially started!");
-  }
-  const handleLine: TransformCallback = newHandlers && newHandlers.transformCallback ? newHandlers.transformCallback : defaultHandleLine;
-  const finishHandler: FinishCallback = newHandlers && newHandlers.finishCallback ? newHandlers.finishCallback : defaultFinishHandler;
-  let startHandler: StartCallback = newHandlers && newHandlers.startCallback ? newHandlers.startCallback : defaultStartHandler;
-
-  
-  function newTransformer() {
-    let transformer = through2.obj(); // new transform stream, in object mode
-    // // since we're in object mode, dataLine comes as a string. Since we're counting on split
-    // // to have already been called upstream, dataLine will be a single line at a time
-    transformer._transform = function (dataLine: string, encoding: string, callback: Function) {
-      let returnErr: any = null
-      try {
-        let dataObj
-        let handledObj
-        if (dataLine.trim() != "") {
-          dataObj = JSON.parse(dataLine)
-          handledObj = handleLine(dataObj)
-        }
-        if (handledObj) {
-          let handledLine = JSON.stringify(handledObj)
-          log.debug(handledLine)
-          this.push(handledLine + '\n');
-        }
-      } catch (err) {
-        returnErr = new PluginError(PLUGIN_NAME, err);
-      }
-
-      callback(returnErr)
-    }
-    return transformer
-  }
-
-
-  // creating a stream through which each file will pass
+  // creating a stream through which each file will pass - a new instance will be created and invoked for each file 
   // see https://stackoverflow.com/a/52432089/5578474 for a note on the "this" param
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
     const self = this
     let returnErr: any = null
+    const parser = parse(configObj)
+
+    // post-process line object
+    const handleLine = (lineObj: any, _streamName : string): object | null => {
+      if (parser.options.raw || parser.options.info) {
+        let newObj = createRecord(lineObj.record, _streamName)
+        if (lineObj.raw) newObj.raw = lineObj.raw
+        if (lineObj.info) newObj.info = lineObj.info
+        lineObj = newObj
+      }
+      else {
+        lineObj = createRecord(lineObj, _streamName)
+      }
+      return lineObj
+    }
+
+    function newTransformer(streamName : string) {
+
+      let transformer = through2.obj(); // new transform stream, in object mode
+  
+      // transformer is designed to follow csv-parse, which emits objects, so dataObj is an Object. We will finish by converting dataObj to a text line
+      transformer._transform = function (dataObj: Object, encoding: string, callback: Function) {
+        let returnErr: any = null
+        try {
+          let handledObj = handleLine(dataObj, streamName)
+          if (handledObj) {
+            let handledLine = JSON.stringify(handledObj)
+            log.debug(handledLine)
+            this.push(handledLine + '\n');
+          }
+        } catch (err) {
+          returnErr = new PluginError(PLUGIN_NAME, err);
+        }
+  
+        callback(returnErr)
+      }
+  
+      return transformer
+    }
+
+    // set the stream name to the file name (without extension)
+    let streamName : string = file.stem
 
     if (file.isNull()) {
       // return empty file
       return cb(returnErr, file)
     }
     else if (file.isBuffer()) {
-      // strArray will hold file.contents, split into lines
-      const strArray = (file.contents as Buffer).toString().split(/\r?\n/)
-      let tempLine: any
-      let resultArray = [];
-      // we'll call handleLine on each line
-      for (let dataIdx in strArray) {
-        try {
-          let lineObj
-          let tempLine
-          if (strArray[dataIdx].trim() != "") {
-            lineObj = JSON.parse(strArray[dataIdx])
-            tempLine = handleLine(lineObj)
+
+
+      parse(file.contents as Buffer, configObj, function(err:any, linesArray : []){
+        // this callback function runs when the parser finishes its work, returning an array parsed lines 
+        let tempLine: any
+        let resultArray = [];
+        // we'll call handleLine on each line
+        for (let dataIdx in linesArray) {
+          try {
+            let lineObj = linesArray[dataIdx]
+            tempLine = handleLine(lineObj, streamName)
+            if (tempLine){
+              let tempStr = JSON.stringify(tempLine)
+              log.debug(tempStr)
+              resultArray.push(tempStr);
+            }
+          } catch (err) {
+            returnErr = new PluginError(PLUGIN_NAME, err);
           }
-          if (tempLine){
-            resultArray.push(JSON.stringify(tempLine) + '\n');
-          }
-        } catch (err) {
-          returnErr = new PluginError(PLUGIN_NAME, err);
         }
-      }
-      let data:string = resultArray.join('')
-      log.debug(data)
-      file.contents = Buffer.from(data)
+        let data:string = resultArray.join('\n')
 
-      finishHandler();
+        file.contents = Buffer.from(data)
+        
+        // we are done with file processing. Pass the processed file along
+        log.debug('calling callback')    
+        cb(returnErr, file);    
+      })
 
-      // send the transformed file through to the next gulp plugin, and tell the stream engine that we're done with this file
-      cb(returnErr, file)
     }
     else if (file.isStream()) {
-
-      try {
       file.contents = file.contents
-        // split plugin will split the file into lines
-        .pipe(split())
-        .pipe(newTransformer())
-        .on('finish', function () {
-          // using finish event here instead of end since this is a Transform stream   https://nodejs.org/api/stream.html#stream_events_finish_and_end
-          //the 'finish' event is emitted after stream.end() is called and all chunks have been processed by stream._transform()
-          //this is when we want to pass the file along
-          log.debug('finished')
-          finishHandler();
+        .pipe(parser)
+        .on('end', function () {
+
+          // DON'T CALL THIS HERE. It MAY work, if the job is small enough. But it needs to be called after the stream is SET UP, not when the streaming is DONE.
+          // Calling the callback here instead of below may result in data hanging in the stream--not sure of the technical term, but dest() creates no file, or the file is blank
+          // cb(returnErr, file);
+          // log.debug('calling callback')    
+
+          log.debug('csv parser is done')
         })
+        // .on('data', function (data:any, err: any) {
+        //   log.debug(data)
+        // })
         .on('error', function (err: any) {
           log.error(err)
-          self.emit('error', new PluginError(PLUGIN_NAME, err))
+          self.emit('error', new PluginError(PLUGIN_NAME, err));
         })
+        .pipe(newTransformer(streamName))
 
       // after our stream is set up (not necesarily finished) we call the callback
       log.debug('calling callback')    
-      cb(returnErr, file);        
-      }
-      catch (err) {
-        log.error(err)    
-        self.emit('error', new PluginError(PLUGIN_NAME, err))
-      }
+      cb(returnErr, file);
     }
 
   })
 
-  startHandler();
   return strm
 }

@@ -1,8 +1,8 @@
 {
-  "name": "gulp-etl-handlelines",
+  "name": "gulp-etl-tap-csv",
   "version": "1.0.2",
-  "repository": "https://github.com/gulpetl/gulp-etl-handlelines",
-  "description": "Utility gulp-etl plugin",
+  "repository": "https://github.com/gulpetl/gulp-etl-tap-csv",
+  "description": "Convert CSV files to JSON compatible with gulp-etl",
   "main": "dist/js/plugin.js",
   "typings": "dist/types/plugin.d.ts",
   "files": [
@@ -16,16 +16,17 @@
   "license": "MIT",
   "keywords": [
     "gulpplugin",
+    "csv",
     "gulp-etl"
   ],
   "homepage": "https://gulpetl.com",
   "dependencies": {
+    "csv-parse": "^4.4.1",
     "from2": "^2.3.0",
     "gulp-error-handle": "^1.0.1",
     "loglevel": "^1.6.1",
     "pkginfo": "^0.4.1",
     "plugin-error": "^1.0.1",
-    "split2": "^3.1.1",
     "through2": "^3.0.1",
     "vinyl": "^2.2.0"
   },
@@ -37,14 +38,12 @@
     "@types/node": "^10.14.6",
     "@types/vinyl": "^2.0.3",
     "@types/vinyl-paths": "0.0.31",
-    "del": "^4.1.1",
-    "gulp": "^4.0.1",
+    "gulp": "^4.0.2",
     "gulp-rename": "^1.4.0",
-    "jest": "^24.7.1",
+    "jest": "^24.8.0",
     "jest-spec-reporter": "^1.0.5",
     "ts-jest": "^24.0.2",
     "ts-node": "^7.0.1",
-    "typescript": "^3.4.5",
-    "vinyl-paths": "^2.1.0"
+    "typescript": "^3.4.5"
   }
 }
