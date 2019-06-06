@@ -1,5 +1,5 @@
 let gulp = require('gulp')
-import { tapCsv } from '../src/plugin'
+import { tapDbf } from '../src/plugin'
 
 import * as loglevel from 'loglevel'
 const log = loglevel.getLogger('gulpfile')
@@ -16,6 +16,7 @@ const PLUGIN_NAME = module.exports.name;
 
 import Vinyl = require('vinyl') 
 
+
 let gulpBufferMode = false;
 
 function switchToBuffer(callback: any) {
@@ -24,10 +25,10 @@ function switchToBuffer(callback: any) {
   callback();
 }
 
-function runTapCsv(callback: any) {
+function runTapDbf(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
 
-  return gulp.src('../testdata/*.csv',{buffer:gulpBufferMode})
+  return gulp.src('../testdata/*.DBF',{buffer:true})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
@@ -35,11 +36,11 @@ function runTapCsv(callback: any) {
     .on('data', function (file:Vinyl) {
       log.info('Starting processing on ' + file.basename)
     })    
-    .pipe(tapCsv({raw:true/*, info:true */}))
+    .pipe(tapDbf())
     .pipe(rename({
       extname: ".ndjson",
     }))      
-    .pipe(gulp.dest('../testdata/processed'))
+    .pipe(gulp.dest('../testdata/processed/'))
     .on('data', function (file:Vinyl) {
       log.info('Finished processing on ' + file.basename)
     })    
@@ -50,6 +51,7 @@ function runTapCsv(callback: any) {
 
 }
 
+/*
 export function csvParseWithoutGulp(callback: any) {
 
   const parse = require('csv-parse')
@@ -61,7 +63,7 @@ export function csvParseWithoutGulp(callback: any) {
     console.log(data)
   });
   
-}
+}*/
 
-exports.default = gulp.series(runTapCsv)
-exports.runTapCsvBuffer = gulp.series(switchToBuffer, runTapCsv)
+exports.default = gulp.series(runTapDbf)
+//exports.runTapCsvBuffer = gulp.series(switchToBuffer, runTapCsv)

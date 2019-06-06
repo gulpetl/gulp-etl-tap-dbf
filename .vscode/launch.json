@@ -38,7 +38,7 @@
             "request": "launch",
             "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
             "stopOnEntry": false,
-            "args": ["--gulpfile", "./debug/gulpfile.ts", "runTapCsvBuffer"],
+            "args": ["--gulpfile", "./debug/gulpfile.ts", "runTapD"],
             "cwd": "${workspaceRoot}",
             "runtimeArgs": [
                 "--nolazy", "-r", "ts-node/register"

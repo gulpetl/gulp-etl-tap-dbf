@@ -6,8 +6,10 @@ const PLUGIN_NAME = module.exports.name;
 import * as loglevel from 'loglevel'
 const log = loglevel.getLogger(PLUGIN_NAME) // get a logger instance based on the project name
 log.setLevel((process.env.DEBUG_LEVEL || 'warn') as log.LogLevelDesc)
+const fs = require('fs');
 
-const parse = require('csv-parse')
+//const parse = require('csv-parse')
+const YADBF = require('yadbf')
 
 /** wrap incoming recordObject in a Singer RECORD Message object*/
 function createRecord(recordObject:Object, streamName: string) : any {
@@ -17,31 +19,32 @@ function createRecord(recordObject:Object, streamName: string) : any {
 /* This is a gulp-etl plugin. It is compliant with best practices for Gulp plugins (see
 https://github.com/gulpjs/gulp/blob/master/docs/writing-a-plugin/guidelines.md#what-does-a-good-plugin-look-like ),
 and like all gulp-etl plugins it accepts a configObj as its first parameter */
-export function tapCsv(configObj: any) {
-  if (!configObj) configObj = {}
-  if (!configObj.columns) configObj.columns = true // we don't allow false for columns; it results in arrays instead of objects for each record
+export function tapDbf() {
+  //if (!configObj) configObj = {}
+  //if (!configObj.columns) configObj.columns = true // we don't allow false for columns; it results in arrays instead of objects for each record
 
   // creating a stream through which each file will pass - a new instance will be created and invoked for each file 
   // see https://stackoverflow.com/a/52432089/5578474 for a note on the "this" param
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
     const self = this
     let returnErr: any = null
-    const parser = parse(configObj)
+    //const parser = YADBF()
 
     // post-process line object
     const handleLine = (lineObj: any, _streamName : string): object | null => {
-      if (parser.options.raw || parser.options.info) {
+      //if (parser.options.raw || parser.options.info) {
         let newObj = createRecord(lineObj.record, _streamName)
-        if (lineObj.raw) newObj.raw = lineObj.raw
-        if (lineObj.info) newObj.info = lineObj.info
+       // if (lineObj.raw) newObj.raw = lineObj.raw
+       // if (lineObj.info) newObj.info = lineObj.info
         lineObj = newObj
-      }
-      else {
-        lineObj = createRecord(lineObj, _streamName)
-      }
+      //}
+      //else {
+        //lineObj = createRecord(lineObj, _streamName)
+      //}
       return lineObj
     }
 
+    /*
     function newTransformer(streamName : string) {
 
       let transformer = through2.obj(); // new transform stream, in object mode
@@ -65,7 +68,7 @@ export function tapCsv(configObj: any) {
   
       return transformer
     }
-
+    */
     // set the stream name to the file name (without extension)
     let streamName : string = file.stem
 
@@ -74,10 +77,16 @@ export function tapCsv(configObj: any) {
       return cb(returnErr, file)
     }
     else if (file.isBuffer()) {
+      fs.createReadStream(file.isBuffer)
+      .pipe(new YADBF())
+      .on('data', (record: any) => {
+        console.log(`record: ${JSON.stringify(record, null, 2)}`);
+      })
+      
 
-
-      parse(file.contents as Buffer, configObj, function(err:any, linesArray : []){
+      (file.contents as Buffer, function(err:any, linesArray : []){
         // this callback function runs when the parser finishes its work, returning an array parsed lines 
+        
         let tempLine: any
         let resultArray = [];
         // we'll call handleLine on each line
@@ -104,6 +113,7 @@ export function tapCsv(configObj: any) {
       })
 
     }
+    /*
     else if (file.isStream()) {
       file.contents = file.contents
         .pipe(parser)
@@ -128,7 +138,7 @@ export function tapCsv(configObj: any) {
       // after our stream is set up (not necesarily finished) we call the callback
       log.debug('calling callback')    
       cb(returnErr, file);
-    }
+    }*/
 
   })
 
