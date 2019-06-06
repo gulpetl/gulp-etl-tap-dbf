@@ -28,7 +28,7 @@ function switchToBuffer(callback: any) {
 function runTapDbf(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
 
-  return gulp.src('../testdata/*.DBF',{buffer:true})
+  return gulp.src('../testdata/*.DBF',{buffer:false})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)

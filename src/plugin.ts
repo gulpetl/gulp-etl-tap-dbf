@@ -8,7 +8,6 @@ const log = loglevel.getLogger(PLUGIN_NAME) // get a logger instance based on th
 log.setLevel((process.env.DEBUG_LEVEL || 'warn') as log.LogLevelDesc)
 const fs = require('fs');
 
-//const parse = require('csv-parse')
 const YADBF = require('yadbf')
 
 /** wrap incoming recordObject in a Singer RECORD Message object*/
@@ -33,7 +32,7 @@ export function tapDbf() {
     // post-process line object
     const handleLine = (lineObj: any, _streamName : string): object | null => {
       //if (parser.options.raw || parser.options.info) {
-        let newObj = createRecord(lineObj.record, _streamName)
+        let newObj = createRecord(lineObj, _streamName)
        // if (lineObj.raw) newObj.raw = lineObj.raw
        // if (lineObj.info) newObj.info = lineObj.info
         lineObj = newObj
@@ -44,7 +43,7 @@ export function tapDbf() {
       return lineObj
     }
 
-    /*
+    
     function newTransformer(streamName : string) {
 
       let transformer = through2.obj(); // new transform stream, in object mode
@@ -68,7 +67,7 @@ export function tapDbf() {
   
       return transformer
     }
-    */
+    
     // set the stream name to the file name (without extension)
     let streamName : string = file.stem
 
@@ -76,12 +75,9 @@ export function tapDbf() {
       // return empty file
       return cb(returnErr, file)
     }
+    /*
     else if (file.isBuffer()) {
-      fs.createReadStream(file.isBuffer)
-      .pipe(new YADBF())
-      .on('data', (record: any) => {
-        console.log(`record: ${JSON.stringify(record, null, 2)}`);
-      })
+      
       
 
       (file.contents as Buffer, function(err:any, linesArray : []){
@@ -112,11 +108,20 @@ export function tapDbf() {
         cb(returnErr, file);    
       })
 
-    }
-    /*
+    }*/
+    
     else if (file.isStream()) {
       file.contents = file.contents
-        .pipe(parser)
+        .pipe(new YADBF())
+        /*
+        .on('header', (header: any) => {
+          console.log(`header: ${JSON.stringify(header, null, 2)}`);
+        })
+        .on('data', (record: any) => {
+          console.log(`record: ${JSON.stringify(record, null, 2)}`);
+        })*/
+        
+
         .on('end', function () {
 
           // DON'T CALL THIS HERE. It MAY work, if the job is small enough. But it needs to be called after the stream is SET UP, not when the streaming is DONE.
@@ -138,7 +143,7 @@ export function tapDbf() {
       // after our stream is set up (not necesarily finished) we call the callback
       log.debug('calling callback')    
       cb(returnErr, file);
-    }*/
+    }
 
   })
 
