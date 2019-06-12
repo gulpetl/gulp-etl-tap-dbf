@@ -25,7 +25,7 @@ var rename = require('gulp-rename')
 var tapDbf = require('gulp-etl-tap-dbf').tapdbf
 
 exports.default = function() {
-    return gulp.src('data/*.DBF' , {buffer: false})
+    return gulp.src('data/*.DBF' , {buffer: false}) //change to 'true' if you want to run in buffer mode
     .pipe(tapDbf({ }))
     .pipe(rename({ extname: ".ndjson" })) // rename to *.ndjson
     .pipe(gulp.dest('output/'));

@@ -70,7 +70,7 @@ export function tapDbf(configObj: any) {
 
     else if (file.isBuffer()) {
       const readable = toStream(Buffer.from(file.contents))
-      let mystream = readable.pipe(new YADBF())
+      let mystream = readable.pipe(new YADBF(configObj))
       .pipe(newTransformer(streamName))
       .on('finish', async () => {
         try {

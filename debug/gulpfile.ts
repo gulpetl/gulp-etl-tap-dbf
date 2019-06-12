@@ -16,7 +16,6 @@ import Vinyl = require('vinyl')
 let gulpBufferMode = false;
 function switchToBuffer(callback: any) {
   gulpBufferMode = true;
-
   callback();
 }
 
