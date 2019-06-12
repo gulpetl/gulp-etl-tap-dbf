@@ -1,8 +1,8 @@
 {
   "name": "gulp-etl-tap-Dbf",
   "version": "1.0.2",
-  "repository": "https://github.com/gulpetl/gulp-etl-tap-csv",
-  "description": "Convert CSV files to JSON compatible with gulp-etl",
+  "repository": "https://github.com/gulpetl/gulp-etl-tap-dbf",
+  "description": "Convert DBF files to JSON compatible with gulp-etl",
   "main": "dist/js/plugin.js",
   "typings": "dist/types/plugin.d.ts",
   "files": [
@@ -13,6 +13,7 @@
     "test": "jest"
   },
   "author": "peterl@sbcotton.com",
+  "contributors": ["Deepen Silwal"],
   "license": "MIT",
   "keywords": [
     "gulpplugin",
