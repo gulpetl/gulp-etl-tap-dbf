@@ -77,10 +77,15 @@ export function tapDbf(configObj: any) {
             file.contents = await getStream.buffer(mystream);       
         }
         catch (err) {
-          console.error(err)
+         console.error(err)
         }
         cb(returnErr, file);
+      }) 
+      .on('error', function (err: any) {
+        log.error(err)
+        self.emit('error', new PluginError(PLUGIN_NAME, err));
       })
+
     }
     
     else if (file.isStream()) {

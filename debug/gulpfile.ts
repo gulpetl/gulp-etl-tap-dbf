@@ -29,7 +29,7 @@ function runTapDbf(callback: any) {
     .on('data', function (file:Vinyl) {
       log.info('Starting processing on ' + file.basename)
     })    
-    .pipe(tapDbf({deleted: false}))
+    .pipe(tapDbf({ }))
     .pipe(rename({
       extname: ".ndjson",
     }))      
