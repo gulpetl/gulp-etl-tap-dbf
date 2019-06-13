@@ -6,7 +6,7 @@ const PLUGIN_NAME = module.exports.name;
 import * as loglevel from 'loglevel'
 //import { read, createReadStream } from 'fs';
 const log = loglevel.getLogger(PLUGIN_NAME) // get a logger instance based on the project name
-//log.setLevel((process.env.DEBUG_LEVEL || 'warn') as log.LogLevelDesc)
+log.setLevel((process.env.DEBUG_LEVEL || 'warn') as log.LogLevelDesc)
 const toStream = require('buffer-to-stream');
 const getStream = require('get-stream');
 const YADBF = require('yadbf')
@@ -53,8 +53,8 @@ export function tapDbf(configObj: any) {
           }
         } catch (err) {
           returnErr = new PluginError(PLUGIN_NAME, err);
-        }
-        
+        } 
+
         callback(returnErr)
       }
       return transformer
@@ -71,7 +71,15 @@ export function tapDbf(configObj: any) {
     else if (file.isBuffer()) {
       const readable = toStream(Buffer.from(file.contents))
       let mystream = readable.pipe(new YADBF(configObj))
+      .on('error', function (err: any) {
+        log.error(err)
+        self.emit('error', new PluginError(PLUGIN_NAME, err));
+      })
       .pipe(newTransformer(streamName))
+      .on('error', function (err: any) {
+        log.error(err)
+        self.emit('error', new PluginError(PLUGIN_NAME, err));
+      })
       .on('finish', async () => {
         try {
             file.contents = await getStream.buffer(mystream);       
@@ -81,10 +89,7 @@ export function tapDbf(configObj: any) {
         }
         cb(returnErr, file);
       }) 
-      .on('error', function (err: any) {
-        log.error(err)
-        self.emit('error', new PluginError(PLUGIN_NAME, err));
-      })
+      
 
     }
     
@@ -109,6 +114,10 @@ export function tapDbf(configObj: any) {
           self.emit('error', new PluginError(PLUGIN_NAME, err));
         })
         .pipe(newTransformer(streamName))
+        .on('error', function (err: any) {
+          log.error(err)
+          self.emit('error', new PluginError(PLUGIN_NAME, err));
+        })
 
       // after our stream is set up (not necesarily finished) we call the callback
       log.debug('calling callback')    

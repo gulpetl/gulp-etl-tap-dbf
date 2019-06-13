@@ -21,7 +21,7 @@ function switchToBuffer(callback: any) {
 
 function runTapDbf(callback: any) {
   log.info('gulp task starting for ' + PLUGIN_NAME)
-  return gulp.src('../testdata/*.DBF',{buffer: gulpBufferMode})
+  return gulp.src('../testdata/*.dbf',{buffer: gulpBufferMode})
     .pipe(errorHandler(function(err:any) {
       log.error('Error: ' + err)
       callback(err)
@@ -44,19 +44,5 @@ function runTapDbf(callback: any) {
 
 }
 
-/*
-export function csvParseWithoutGulp(callback: any) {
-
-  const parse = require('csv-parse')
-
-  var parser = parse({delimiter: ',', columns:true});
-  
-  require('fs').createReadStream('../testdata/cars.csv').pipe(parser)
-  .on("data",(data:any)=>{
-    console.log(data)
-  });
-  
-}*/
-
 exports.default = gulp.series(runTapDbf)
-exports.runTapCsvBuffer = gulp.series(switchToBuffer, runTapDbf)
+exports.runTapDbfBuffer = gulp.series(switchToBuffer, runTapDbf)
