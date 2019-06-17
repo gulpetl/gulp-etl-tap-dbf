@@ -1,13 +1,24 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const through2 = require('through2');
 const PluginError = require("plugin-error");
 const pkginfo = require('pkginfo')(module); // project package.json info into module.exports
 const PLUGIN_NAME = module.exports.name;
 const loglevel = require("loglevel");
+//import { read, createReadStream } from 'fs';
 const log = loglevel.getLogger(PLUGIN_NAME); // get a logger instance based on the project name
-log.setLevel((process.env.DEBUG_LEVEL || 'warn'));
-const parse = require('csv-parse');
+//log.setLevel((process.env.DEBUG_LEVEL || 'warn') as log.LogLevelDesc)
+const toStream = require('buffer-to-stream');
+const getStream = require('get-stream');
+const YADBF = require('yadbf');
 /** wrap incoming recordObject in a Singer RECORD Message object*/
 function createRecord(recordObject, streamName) {
     return { type: "RECORD", stream: streamName, record: recordObject };
@@ -15,35 +26,21 @@ function createRecord(recordObject, streamName) {
 /* This is a gulp-etl plugin. It is compliant with best practices for Gulp plugins (see
 https://github.com/gulpjs/gulp/blob/master/docs/writing-a-plugin/guidelines.md#what-does-a-good-plugin-look-like ),
 and like all gulp-etl plugins it accepts a configObj as its first parameter */
-function tapCsv(configObj) {
-    if (!configObj)
-        configObj = {};
-    if (!configObj.columns)
-        configObj.columns = true; // we don't allow false for columns; it results in arrays instead of objects for each record
+function tapDbf(configObj) {
     // creating a stream through which each file will pass - a new instance will be created and invoked for each file 
     // see https://stackoverflow.com/a/52432089/5578474 for a note on the "this" param
     const strm = through2.obj(function (file, encoding, cb) {
         const self = this;
         let returnErr = null;
-        const parser = parse(configObj);
         // post-process line object
         const handleLine = (lineObj, _streamName) => {
-            if (parser.options.raw || parser.options.info) {
-                let newObj = createRecord(lineObj.record, _streamName);
-                if (lineObj.raw)
-                    newObj.raw = lineObj.raw;
-                if (lineObj.info)
-                    newObj.info = lineObj.info;
-                lineObj = newObj;
-            }
-            else {
-                lineObj = createRecord(lineObj, _streamName);
-            }
+            let newObj = createRecord(lineObj, _streamName);
+            lineObj = newObj;
             return lineObj;
         };
         function newTransformer(streamName) {
             let transformer = through2.obj(); // new transform stream, in object mode
-            // transformer is designed to follow csv-parse, which emits objects, so dataObj is an Object. We will finish by converting dataObj to a text line
+            // transformer is designed to follow yadbf, which emits objects, so dataObj is an Object. We will finish by converting dataObj to a text line
             transformer._transform = function (dataObj, encoding, callback) {
                 let returnErr = null;
                 try {
@@ -68,41 +65,32 @@ function tapCsv(configObj) {
             return cb(returnErr, file);
         }
         else if (file.isBuffer()) {
-            parse(file.contents, configObj, function (err, linesArray) {
-                // this callback function runs when the parser finishes its work, returning an array parsed lines 
-                let tempLine;
-                let resultArray = [];
-                // we'll call handleLine on each line
-                for (let dataIdx in linesArray) {
-                    try {
-                        let lineObj = linesArray[dataIdx];
-                        tempLine = handleLine(lineObj, streamName);
-                        if (tempLine) {
-                            let tempStr = JSON.stringify(tempLine);
-                            log.debug(tempStr);
-                            resultArray.push(tempStr);
-                        }
-                    }
-                    catch (err) {
-                        returnErr = new PluginError(PLUGIN_NAME, err);
-                    }
+            const readable = toStream(Buffer.from(file.contents));
+            let mystream = readable.pipe(new YADBF(configObj))
+                .pipe(newTransformer(streamName))
+                .on('finish', () => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    file.contents = yield getStream.buffer(mystream);
                 }
-                let data = resultArray.join('\n');
-                file.contents = Buffer.from(data);
-                // we are done with file processing. Pass the processed file along
-                log.debug('calling callback');
+                catch (err) {
+                    console.error(err);
+                }
                 cb(returnErr, file);
+            }))
+                .on('error', function (err) {
+                log.error(err);
+                self.emit('error', new PluginError(PLUGIN_NAME, err));
             });
         }
         else if (file.isStream()) {
             file.contents = file.contents
-                .pipe(parser)
+                .pipe(new YADBF(configObj))
                 .on('end', function () {
                 // DON'T CALL THIS HERE. It MAY work, if the job is small enough. But it needs to be called after the stream is SET UP, not when the streaming is DONE.
                 // Calling the callback here instead of below may result in data hanging in the stream--not sure of the technical term, but dest() creates no file, or the file is blank
                 // cb(returnErr, file);
                 // log.debug('calling callback')    
-                log.debug('csv parser is done');
+                log.debug('dbf parser is done');
             })
                 // .on('data', function (data:any, err: any) {
                 //   log.debug(data)
@@ -119,5 +107,5 @@ function tapCsv(configObj) {
     });
     return strm;
 }
-exports.tapCsv = tapCsv;
+exports.tapDbf = tapDbf;
 //# sourceMappingURL=plugin.js.map

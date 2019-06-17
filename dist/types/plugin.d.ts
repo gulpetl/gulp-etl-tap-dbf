@@ -1,1 +1,1 @@
-export declare function tapCsv(configObj: any): any;
+export declare function tapDbf(configObj: any): any;
