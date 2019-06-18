@@ -1,6 +1,6 @@
 {
   "name": "gulp-etl-tap-dbf",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "repository": "https://github.com/gulpetl/gulp-etl-tap-dbf",
   "description": "Parse DBFs into gulp-etl's Message Stream JSON format",
   "main": "dist/js/plugin.js",

@@ -69,28 +69,9 @@ export function tapDbf(configObj: any) {
     }
 
     else if (file.isBuffer()) {
-      const readable = toStream(Buffer.from(file.contents))
-      let mystream = readable.pipe(new YADBF(configObj))
-      .on('error', function (err: any) {
-        log.error(err)
-        self.emit('error', new PluginError(PLUGIN_NAME, err));
-      })
-      .pipe(newTransformer(streamName))
-      .on('error', function (err: any) {
-        log.error(err)
-        self.emit('error', new PluginError(PLUGIN_NAME, err));
-      })
-      .on('finish', async () => {
-        try {
-            file.contents = await getStream.buffer(mystream);       
-        }
-        catch (err) {
-         console.error(err)
-        }
-        cb(returnErr, file);
-      }) 
-      
-
+      // throw new PluginError(PLUGIN_NAME, 'Buffer mode not available')
+      returnErr = new PluginError(PLUGIN_NAME, 'Buffer mode not available')
+      return cb(returnErr, file)
     }
     
     else if (file.isStream()) {
