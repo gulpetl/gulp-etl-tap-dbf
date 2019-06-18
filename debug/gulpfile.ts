@@ -44,5 +44,30 @@ function runTapDbf(callback: any) {
 
 }
 
+export function dbfParseWithoutGulp(callback: any) {
+  try {
+    const YADBF = require('yadbf')
+    let datacount = 0
+    
+    // file stream
+    require('fs').createReadStream('../testdata/ffc.dbf')
+    .on("data",(data:any)=>{
+      console.log(data)
+    })
+    .pipe(new YADBF({ }))
+    .on('error', function (err: any) {
+      log.error(err)
+    })  
+    .on("data",(data:any)=>{
+      datacount++
+      console.log(datacount + ': ' + JSON.stringify(data))
+    });
+  }
+  catch (err) {
+    log.error(err)
+  }
+    
+}
+
 exports.default = gulp.series(runTapDbf)
 exports.runTapDbfBuffer = gulp.series(switchToBuffer, runTapDbf)

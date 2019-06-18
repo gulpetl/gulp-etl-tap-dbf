@@ -1,8 +1,8 @@
 {
-  "name": "gulp-etl-tap-Dbf",
-  "version": "1.0.2",
+  "name": "gulp-etl-tap-dbf",
+  "version": "1.0.0",
   "repository": "https://github.com/gulpetl/gulp-etl-tap-dbf",
-  "description": "Convert DBF files to JSON compatible with gulp-etl",
+  "description": "Parse DBFs into gulp-etl's Message Stream JSON format",
   "main": "dist/js/plugin.js",
   "typings": "dist/types/plugin.d.ts",
   "files": [
@@ -13,21 +13,23 @@
     "test": "jest"
   },
   "author": "peterl@sbcotton.com",
-  "contributors": ["Deepen Silwal"],
+  "contributors": [
+    "Deepen Silwal"
+  ],
   "license": "MIT",
   "keywords": [
     "gulpplugin",
-    "csv",
+    "dbf",
     "gulp-etl"
   ],
   "homepage": "https://gulpetl.com",
   "dependencies": {
     "buffer-to-stream": "^1.0.0",
-    "csv-parse": "^4.4.1",
+    "csv-parse": "^4.4.3",
     "from2": "^2.3.0",
     "get-stream": "^5.1.0",
     "gulp-error-handle": "^1.0.1",
-    "loglevel": "^1.6.1",
+    "loglevel": "^1.6.3",
     "pkginfo": "^0.4.1",
     "plugin-error": "^1.0.1",
     "stream-buffers": "^3.0.2",
@@ -40,15 +42,15 @@
     "@types/gulp-rename": "0.0.33",
     "@types/jest": "^23.3.14",
     "@types/loglevel": "^1.5.4",
-    "@types/node": "^10.14.6",
+    "@types/node": "^12.0.8",
     "@types/vinyl": "^2.0.3",
     "@types/vinyl-paths": "0.0.31",
     "gulp": "^4.0.2",
     "gulp-rename": "^1.4.0",
     "jest": "^24.8.0",
-    "jest-spec-reporter": "^1.0.5",
+    "jest-spec-reporter": "^1.0.6",
     "ts-jest": "^24.0.2",
     "ts-node": "^7.0.1",
-    "typescript": "^3.4.5"
+    "typescript": "^3.5.2"
   }
 }
