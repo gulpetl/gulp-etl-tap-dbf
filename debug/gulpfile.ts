@@ -20,6 +20,8 @@ function switchToBuffer(callback: any) {
 }
 
 function runTapDbf(callback: any) {
+  try {
+
   log.info('gulp task starting for ' + PLUGIN_NAME)
   return gulp.src('../testdata/*.dbf',{buffer: gulpBufferMode})
     .pipe(errorHandler(function(err:any) {
@@ -29,6 +31,7 @@ function runTapDbf(callback: any) {
     .on('data', function (file:Vinyl) {
       log.info('Starting processing on ' + file.basename)
     })    
+    // error is here: Comment line below to see the problem go away
     .pipe(tapDbf({ }))
     .pipe(rename({
       extname: ".ndjson",
@@ -41,6 +44,11 @@ function runTapDbf(callback: any) {
       log.info('gulp task complete')
       callback()
     })
+
+  }
+  catch (err) {
+    log.error(err)
+  }
 
 }
 
