@@ -22,6 +22,7 @@ https://github.com/gulpjs/gulp/blob/master/docs/writing-a-plugin/guidelines.md#w
 and like all gulp-etl plugins it accepts a configObj as its first parameter */
 export function tapDbf(configObj: any) {
  
+let count = 0
   // creating a stream through which each file will pass - a new instance will be created and invoked for each file 
   // see https://stackoverflow.com/a/52432089/5578474 for a note on the "this" param
   const strm = through2.obj(function (this: any, file: Vinyl, encoding: string, cb: Function) {
@@ -31,8 +32,13 @@ export function tapDbf(configObj: any) {
 
     // post-process line object
     const handleLine = (lineObj: any, _streamName : string): object | null => {
+      try {  
         let newObj = createRecord(lineObj, _streamName)
-        lineObj = newObj
+          lineObj = newObj
+      }
+      catch (err) {
+        log.error(err)
+      }
       return lineObj
     }
 
@@ -43,12 +49,17 @@ export function tapDbf(configObj: any) {
   
       // transformer is designed to follow yadbf, which emits objects, so dataObj is an Object. We will finish by converting dataObj to a text line
       transformer._transform = function (dataObj: Object, encoding: string, callback: Function) {
+        count++
+
+callback(null, JSON.stringify(dataObj))
+log.debug(count + ".")
+return
         let returnErr: any = null
         try {
           let handledObj = handleLine(dataObj, streamName)
           if (handledObj) {
             let handledLine = JSON.stringify(handledObj)
-            log.debug(handledLine)
+            log.debug(count + ". data from handleLine:" + handledLine)
             this.push(handledLine + '\n')
           }
         } catch (err) {
@@ -69,29 +80,55 @@ export function tapDbf(configObj: any) {
     }
 
     else if (file.isBuffer()) {
-      const readable = toStream(Buffer.from(file.contents))
-      let mystream = readable.pipe(new YADBF(configObj))
-      .on('error', function (err: any) {
-        log.error(err)
-        self.emit('error', new PluginError(PLUGIN_NAME, err));
-      })
-      .pipe(newTransformer(streamName))
-      .on('error', function (err: any) {
-        log.error(err)
-        self.emit('error', new PluginError(PLUGIN_NAME, err));
-      })
-      .on('finish', async () => {
-        try {
-            file.contents = await getStream.buffer(mystream);       
-        }
-        catch (err) {
-         console.error(err)
-        }
-        cb(returnErr, file);
-      }) 
-      
 
-    }
+      let dataCount = 0
+      
+            try {
+      
+            const readable = toStream(file.contents)
+            let mystream = readable.pipe(new YADBF(configObj))
+            .on('error', function (err: any) {
+              log.error(err)
+              self.emit('error', new PluginError(PLUGIN_NAME, err));
+            })
+            .on('data', (record:any) => {
+              dataCount++
+              log.debug('data from YADBF: ' + dataCount + ': ' + JSON.stringify(record))
+            })
+            .on('end', () => {
+              console.log('Done!');
+            })      
+            .pipe(newTransformer(streamName))
+            // .on('error', function (err: any) {
+            //   log.error(err)
+            //   self.emit('error', new PluginError(PLUGIN_NAME, err));
+            // })
+            .on('finish',async () => {
+              try {
+                  let zzzz =  await getStream.buffer(mystream)
+                  file.contents = zzzz
+                  log.debug('finished')
+                  // let asdf =  getStream.buffer(mystream)
+                  // asdf
+                  // .then((asdf:any) => {
+      
+                  //   file.contents = asdf
+                    cb(returnErr, file);
+                  // })
+                  // .catch((err:any) => {
+                  //   console.error(err)
+                  // })
+              }
+              catch (err) {
+               console.error(err)
+              }
+            })
+          }
+            catch (err) {
+              log.error(err)
+            }
+      
+          }
     
     else if (file.isStream()) {
       file.contents = file.contents
